@@ -14,7 +14,7 @@ except:
 
 # 在GDAL 中 feature 指的就是 mapinfo中的 点 线 折线  区域等
 #driver = ogr.GetDriverByName("ESRI Shapefile")    # .shp 文件驱动
-#driver = ogr.GetDriverByName("Mapinfo File")      # mapinfo   .tab 文件驱动
+driver = ogr.GetDriverByName("Mapinfo File")      # mapinfo   .tab 文件驱动
 
 
 
@@ -22,7 +22,7 @@ except:
 class CreateMapFeature():
     def __init__(self,path):
         self.path = path
-        self.driver = ogr.GetDriverByName("Mapinfo File")  # mapinfo   .tab 文件驱动
+
     def newFile(self, filename, fieldList):
         #创建新文件
         self.filename = filename                        #filename文件名,不包含路径 字符串格式
@@ -34,7 +34,7 @@ class CreateMapFeature():
         else:
             self.filename = self.path + self.filename
             print("Create file, Name is :" + self.filename)
-        self.dataSource = self.driver.CreateDataSource(self.filename)        # 创建 文件
+        self.dataSource = driver.CreateDataSource(self.filename)        # 创建 文件
         self.newLayer = self.dataSource.CreateLayer('newLayer')  # 创建图层testLayer2
         for self.field in self.fieldList:                 #创建字段名字典中的所有字段
             if self.field[1] == 0 :
@@ -54,38 +54,38 @@ class CreateMapFeature():
         self.filename = filename
         self.filename = self.path + self.filename
         if os.path.isfile(self.filename):  # 如果文件存在的话删除
-            self.driver.DeleteDataSource(self.filename)  # 删除一个文件
+            driver.DeleteDataSource(self.filename)  # 删除一个文件
             print("File well be delete :" + self.filename)
         else:
             print("File is not exist :" + self.filename + ",Plase Check it!")
 
-    def createPoint(self, newLayer, x, y, values = []):        #layer 为要将Feature添加到的 Layer x ,y 为 坐标 values 为字段值列表
-        self.newLayer = newLayer
+    def createPoint(self, layer, x, y, values = []):        #layer 为要将Feature添加到的 Layer x ,y 为 坐标 values 为字段值列表
+        self.layer = layer
         self.x = x
         self.y = y
         self.values = values
         # 添加一个新的Feature
-        self.featureDefn = self.newLayer.GetLayerDefn()  # 获取Feature 的类型
+        self.featureDefn = newLayer.GetLayerDefn()  # 获取Feature 的类型
         self.newFeature = ogr.Feature(self.featureDefn)  # 创建Feature
         # 设定几何形状
         self.point = ogr.Geometry(ogr.wkbPoint)  # 创建一个点
         self.point.AddPoint(self.x, self.y)  # 设置 point的坐标
         self.newFeature.SetGeometry(self.point)  # 设置Featur的几何形状为point
 
-        self.fields = ["poiName", "poiId", "Bound"]
-        for self.tmpField,self.tmpValue  in zip(self.fields, self.values) :
+        self.fields = ("poiName", "poiId", "Bound")
+        for self.tmpValue  in (self.values,self.fields) :
             #设定Featur某字段的数值,这里设置 index 字段的值为 12
-            self.newFeature.SetField(self.tmpField, self.tmpValue)
-        # 将newFeature写入 self.layer
-        self.newLayer.CreateFeature(self.newFeature)
+            self.newFeature.SetField(self.tmpValue[0],self.tmpValue[1])
+        # 将newFeature写入 newLayer
+        self.layer.CreateFeature(self.newFeature)
         self.point.Destroy()  # 释放对象内存
         return  self.newFeature                  # 返回值为Feature 对象
 
-    def createLine(self, newLayer,pointList):           #layer 为要将Feature添加到的 Layer , points 为折线的节点x,y坐标的列表如 :((1,1),(3,3),(4,2))
-        self.newLayer = newLayer
+    def createLine(self, layer,pointList):           #layer 为要将Feature添加到的 Layer , points 为折线的节点x,y坐标的列表如 :((1,1),(3,3),(4,2))
+        self.layer = layer
         self.pointList = pointList
         # 添加一个新的Feature
-        self.featureDefn = self.newLayer.GetLayerDefn()  # 获取Feature 的类型
+        self.featureDefn = newLayer.GetLayerDefn()  # 获取Feature 的类型
         self.newFeature = ogr.Feature(self.featureDefn)  # 创建Feature
         # 设定几何形状
         self.line = ogr.Geometry(ogr.wkbLineString)  # 创建一条折线
@@ -94,16 +94,16 @@ class CreateMapFeature():
         self.newFeature.SetGeometry(self.line)  # 设置Featur的几何形状为line
         #设定Featur某字段的数值,这里设置 index 字段的值为 12
         self.newFeature.SetField('index', 12)
-        # 将newFeature写入 self.layer
-        self.newLayer.CreateFeature(self.newFeature)
+        # 将newFeature写入 newLayer
+        self.layer.CreateFeature(self.newFeature)
         self.line.Destroy()  # 释放对象内存
         return  self.newFeature                  # 返回值为Feature 对象
 
-    def createPolygon(self, newLayer,ringList):           #layer 为要将Feature添加到的 Layer ,
-        self.newLayer = newLayer                              #rings 为封闭的折线ring 的列表,可以有1个或者2个元素(内环和外环)
+    def createPolygon(self, layer,ringList):           #layer 为要将Feature添加到的 Layer ,
+        self.layer = layer                              #rings 为封闭的折线ring 的列表,可以有1个或者2个元素(内环和外环)
         self.ringList = ringList                   #如:1个环:((0,0),(0,10),(10,10),(10,0))     2个环: (((0,0),(0,10),(10,10),(10,0)),((2.5,2.5),(7.5,2.5),(7.5,7.5),(2.5,7.5)))
         # 添加一个新的Feature
-        self.featureDefn = self.newLayer.GetLayerDefn()  # 获取Feature 的类型
+        self.featureDefn = newLayer.GetLayerDefn()  # 获取Feature 的类型
         self.newFeature = ogr.Feature(self.featureDefn)  # 创建Feature
         # 设定几何形状
         self.polygon = ogr.Geometry(ogr.wkbPolygon)  # 创建polygon区域
@@ -117,14 +117,14 @@ class CreateMapFeature():
         self.newFeature.SetGeometry(self.polygon)   #设置Featur的几何形状为polygon (设置newFeature 为 区域 polygon )
         #设定Featur某字段的数值,这里设置 index 字段的值为 12
         self.newFeature.SetField('index', 13)
-        # 将newFeature写入 self.layer
-        self.newLayer.CreateFeature(self.newFeature)
+        # 将newFeature写入 newLayer
+        self.layer.CreateFeature(self.newFeature)
         self.polygon.Destroy()  # 释放对象内存
         return  self.newFeature                  # 返回值为Feature 对象
 
 
-    def setFieldValue(self,newLayer,valueList):
-        self.newLayer = newLayer
+    def setFieldValue(self,layer,valueList):
+        self.layer = layer
         self.valueList = valueList
         pass
 

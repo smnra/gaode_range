@@ -1,6 +1,8 @@
 # -*- coding:UTF-8 -*-
 import requests
 import json
+import time
+import  createMapinfoTab
 
 pageNumber = 1
 
@@ -12,7 +14,7 @@ headers = {'Upgrade-Insecure-Requests': '1',
            'Accept-Language': 'zh-CN,zh;q=0.8',
            }
 pm = {'polygon': '107.124295,34.38007;107.15322,34.344148',
-      'key': 'dc44a8ec8db3f9ac82344f9aa536e678',
+      'key': '7d3ff5a71f84c7446140f6cab819bd81',
       'extensions': 'base',       #返回结果控制 可选 为 "all"  或者 "base"
       'offset': 10,          #分页大小,高德地图分最大每页50个 强烈建议不超过25，若超过25可能造成访问报错
       'page': 1            #第几页 	最大翻页数100
@@ -31,12 +33,54 @@ maxPage = int(poiJsons['count']) // 10 - 1  # 重json的 'count" 字段取得 �
 
 
 
+
+'''
+根据POI ID 获取 边界多边形
+https://gaode.com/service/poiInfo?query_type=IDQ&pagesize=20&pagenum=1&qii=true&cluster_state=5&need_utd=true&utd_sceneid=1000&div=PC1000&addr_poi_merge=true&is_classify=true&zoom=11&id=B000A84IMM
+'''
+regionUrl= 'https://gaode.com/service/poiInfo?query_type=IDQ&pagesize=20&pagenum=1&qii=true&cluster_state=5&need_utd=true&utd_sceneid=1000&div=PC1000&addr_poi_merge=true&is_classify=true&zoom=11&id='
+
+
+
+newMap = createMapinfoTab.CreateMapFeature('E:\\工具\\资料\\宝鸡\\研究\\Python\\python3\\gaode_range\\tab\\')
+fieldList = (("poiName", (4, 255)), ("poiId", (4, 255)), ("Bound", (4, 255)))
+newLayer = newMap.newFile('POI.tab', fieldList)
+#newMap.createPoint(newLayer, 10, 10)
+#newMap.createPolygon(newLayer, (((0, 0), (0, 10), (10, 10), (10, 0)), ((2.5, 2.5), (7.5, 2.5), (7.5, 7.5), (2.5, 7.5))))
+
+
+
+
+
+
+
+
+
+
+
+
+
 pois = []
 for i in range(1,maxPage) :                     #循环 从第一页开始到最后一页
     poiRequest = requests.get(url, params=pm,)    # 发送get 请求
     poiJsons = json.loads(poiRequest.text)          #用json 格式化服务器返回的text字符串
     pm.update({'page': i + 1})                     # 当前页数加1
-    pois.extend(list(poiJsons['pois']))                   #把poi 列表 添加到 pois 列表中保存
-    for poi in poiJsons['pois']:
-        print(str(poi['name']), str(poi['id']))
 
+    for index,poi in enumerate(poiJsons['pois']):     #遍历整页的POI ID
+        #print(str(poi['name']), str(poi['id']))
+        regionRequest = requests.get(regionUrl + str(poi['id']))   #发送单个get 根据 POI 的 ID  获取 bound 经纬度
+        regionJsons = json.loads(regionRequest.text)                # 格式化 json数据 为字典
+        if regionJsons['data'] == 'too fast':                    # 判断取回的数据是否是 'too fast'  由于请求速度过快 造成的 异常数据
+            time.sleep(3)                                           #延迟3秒再次请求
+            regionRequest = requests.get(regionUrl + str(poi['id']))  # 发送单个get 根据 POI 的 ID  获取 bound 经纬度
+            regionJsons = json.loads(regionRequest.text)  # 格式化 json数据 为字典
+        else :
+            poiJsons['pois'][index].update({'bound':regionJsons['data']['bounds']})       #把获取到的 bound 经纬度 更新到 单个的pois中
+            print(str(poi['name']), str(poi['id']),regionJsons['data']['bounds'])          # 打印 POI 的  名字 ID  和 bounds
+            newMap.createPoint(newLayer, float(poi['location'].split(',')[0]), float(poi['location'].split(',')[1]), (str(poi['name']), str(poi['id']), regionJsons['data']['bounds']))
+
+    pois.extend(list(poiJsons['pois']))                   #把poi 列表 添加到 pois 列表中保存
+
+
+
+newMap.close(newLayer)

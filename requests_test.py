@@ -13,7 +13,7 @@ headers = {'Upgrade-Insecure-Requests': '1',
            'Accept-Language': 'zh-CN,zh;q=0.8',
            }
 pm = {'polygon': '107.124295,34.38007;107.15322,34.344148',
-      'key': 'dc44a8ec8db3f9ac82344f9aa536e678',
+      'key': '7d3ff5a71f84c7446140f6cab819bd81',
       'extensions': 'base',       #返回结果控制 可选 为 "all"  或者 "base"
       'offset': 10,          #分页大小,高德地图分最大每页50个 强烈建议不超过25，若超过25可能造成访问报错
       'page': 1            #第几页 	最大翻页数100
@@ -61,4 +61,6 @@ for i in range(1,maxPage) :                     #循环 从第一页开始到最
         else :
             poiJsons['pois'][index].update({'bound':regionJsons['data']['bounds']})       #把获取到的 bound 经纬度 更新到 单个的pois中
             print(str(poi['name']), str(poi['id']),regionJsons['data']['bounds'])          # 打印 POI 的  名字 ID  和 bounds
+
+
     pois.extend(list(poiJsons['pois']))                   #把poi 列表 添加到 pois 列表中保存
