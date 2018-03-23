@@ -71,14 +71,17 @@ path = r'./tab/'
 filename = r'newmap.tab'
 if os.path.isfile(path + filename) :            #如果文件存在的话 重新起一个文件名
     filename = path +  "new_" + filename
-    print("File is exist,Create anothor name:" + filename)
+    print("File is exist,Create anothor, name is :" + filename)
+else:
+    filename = path + filename
+    print("Create file, name is :" + filename)
 
-dataSource2 = driver.CreateDataSource(path + filename)        # 创建 文件
+dataSource2 = driver.CreateDataSource(filename)        # 创建 文件
 #driver.DeleteDataSource(filename)    #删除一个文件
 newLayer = dataSource2.CreateLayer('testLayer2', geom_type=ogr.wkbPoint)    #创建图层testLayer2
 
 newField = ogr.FieldDefn('index', ogr.OFTInteger)#添加一个新字段，只能在layer里面加
-#fieldDefn.SetWidth(4)                            #如果新字段是字符串类则必须要指定宽度
+#newField.SetWidth(4)                            #如果新字段是字符串类则必须要指定宽度
 newLayer.CreateField(newField)                       #将新字段指配到layer
 
 #########################################################################
@@ -114,7 +117,7 @@ newFeature.SetGeometry(line)              #设置Featur的几何形状为line (�
 newFeature.SetField('index',13)            #设定Featur某字段的数值,这里设置 index 字段的值为 12
 newLayer.CreateFeature(newFeature)          #将newFeature写入 newLayer
 
-#####################################################################################
+######################################################################################
 
 
 
