@@ -2,7 +2,7 @@
 import requests
 import json
 import time
-import  createMapinfoTab
+import  createMapinfoFile
 
 pageNumber = 1
 

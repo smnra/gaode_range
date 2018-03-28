@@ -1,152 +1,168 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
+# -*- coding: CP936 -*-
 
 
 import sys
 import os
 import osr
 try:
-    from osgeo import ogr
+    from osgeo import ogr,gdal
 except:
     import ogr
 
 
 
-# åœ¨GDAL ä¸­ feature æŒ‡çš„å°±æ˜¯ mapinfoä¸­çš„ ç‚¹ çº¿ æŠ˜çº¿  åŒºåŸŸç­‰
-#driver = ogr.GetDriverByName("ESRI Shapefile")    # .shp æ–‡ä»¶é©±åŠ¨
-driver = ogr.GetDriverByName("Mapinfo File")      # mapinfo   .tab æ–‡ä»¶é©±åŠ¨
+# ÔÚGDAL ÖĞ feature Ö¸µÄ¾ÍÊÇ mapinfoÖĞµÄ µã Ïß ÕÛÏß  ÇøÓòµÈ
+#driver = ogr.GetDriverByName("ESRI Shapefile")    # .shp ÎÄ¼şÇı¶¯
+#driver = ogr.GetDriverByName("Mapinfo File")      # mapinfo   .tab ÎÄ¼şÇı¶¯
 
 
+gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
+# ¶ÁÈ¡×Ö¶ÎÊôĞÔÖµÊ±ÉèÖÃ£¬·ñÔòÓĞÖĞÎÄÂÒÂë
+gdal.SetConfigOption("SHAPE_ENCODING","UTF-8")
 
 
 class CreateMapFeature():
     def __init__(self,path):
         self.path = path
+        self.driver = ogr.GetDriverByName("ESRI Shapefile")  # .shp ÎÄ¼şÇı¶¯
+        #self.driver = ogr.GetDriverByName("Mapinfo File")  # mapinfo   .tab ÎÄ¼şÇı¶¯
 
     def newFile(self, filename, fieldList):
-        #åˆ›å»ºæ–°æ–‡ä»¶
-        self.filename = filename                        #filenameæ–‡ä»¶å,ä¸åŒ…å«è·¯å¾„ å­—ç¬¦ä¸²æ ¼å¼
-        self.fieldList = fieldList                      #fieldList ,å›¾å±‚çš„è¡¨æ ¼å­—æ®µ  åˆ—è¡¨æ ¼å¼,(("index", 0), ("name",(4,255)), ("lon", 2), ("lat" , 2))
-                                                        # åˆ—è¡¨ä¸º å­—æ®µçš„åå­— å’Œ æ•°æ®ç±»å‹, 0ä»£è¡¨æ•´æ•° , 2 ä»£è¡¨ æµ®ç‚¹æ•° , 4ä»£è¡¨å­—ç¬¦ä¸²(å¦‚æœæ˜¯å­—ç¬¦ä¸²æ ¼å¼ åˆ™åˆ—è¡¨çš„ç¬¬äºŒä¸ªå…ƒç´ ä¸º 4å’Œå­—ç¬¦ä¸²çš„é•¿åº¦çš„åˆ—è¡¨
-        if os.path.isfile(self.path + self.filename):  # å¦‚æœæ–‡ä»¶å­˜åœ¨çš„è¯ é‡æ–°èµ·ä¸€ä¸ªæ–‡ä»¶å
+        #´´½¨ĞÂÎÄ¼ş
+        self.filename = filename                        #filenameÎÄ¼şÃû,²»°üº¬Â·¾¶ ×Ö·û´®¸ñÊ½
+        self.fieldList = fieldList                      #fieldList ,Í¼²ãµÄ±í¸ñ×Ö¶Î  ÁĞ±í¸ñÊ½,(("index", 0), ("name",(4,255)), ("lon", 2), ("lat" , 2))
+                                                        # ÁĞ±íÎª ×Ö¶ÎµÄÃû×Ö ºÍ Êı¾İÀàĞÍ, 0´ú±íÕûÊı , 2 ´ú±í ¸¡µãÊı , 4´ú±í×Ö·û´®(Èç¹ûÊÇ×Ö·û´®¸ñÊ½ ÔòÁĞ±íµÄµÚ¶ş¸öÔªËØÎª 4ºÍ×Ö·û´®µÄ³¤¶ÈµÄÁĞ±í
+        if os.path.isfile(self.path + self.filename):  # Èç¹ûÎÄ¼ş´æÔÚµÄ»° ÖØĞÂÆğÒ»¸öÎÄ¼şÃû
             self.filename = self.path + r"/new_" + self.filename
             print("File is exist,Create anothor, Name is :" + self.filename)
         else:
             self.filename = self.path + self.filename
             print("Create file, Name is :" + self.filename)
-        self.dataSource = driver.CreateDataSource(self.filename)        # åˆ›å»º æ–‡ä»¶
-        self.newLayer = self.dataSource.CreateLayer('newLayer')  # åˆ›å»ºå›¾å±‚testLayer2
-        for self.field in self.fieldList:                 #åˆ›å»ºå­—æ®µåå­—å…¸ä¸­çš„æ‰€æœ‰å­—æ®µ
+        self.dataSource = self.driver.CreateDataSource(self.filename)        # ´´½¨ ÎÄ¼ş
+        for self.field in self.fieldList:                 #´´½¨×Ö¶ÎÃû×ÖµäÖĞµÄËùÓĞ×Ö¶Î
             if self.field[1] == 0 :
                 self.fieldType = ogr.OFTInteger
-                self.newField = ogr.FieldDefn(self.field[0], self.fieldType)  # æ·»åŠ ä¸€ä¸ªæ–°å­—æ®µ
+                self.newField = ogr.FieldDefn(self.field[0], self.fieldType)  # Ìí¼ÓÒ»¸öĞÂ×Ö¶Î
             elif self.field[1] == 2 :
                 self.fieldType = ogr.OFTReal
-                self.newField = ogr.FieldDefn(self.field[0], self.fieldType)  # æ·»åŠ ä¸€ä¸ªæ–°å­—æ®µ
+                self.newField = ogr.FieldDefn(self.field[0], self.fieldType)  # Ìí¼ÓÒ»¸öĞÂ×Ö¶Î
             elif self.field[1][0] == 4 :
                 self.fieldType = ogr.OFTString
-                self.newField = ogr.FieldDefn(self.field[0], self.fieldType)  # æ·»åŠ ä¸€ä¸ªæ–°å­—æ®µ
-                self.newField.SetWidth(self.field[1][1])          #å¦‚æœæ–°å­—æ®µæ˜¯å­—ç¬¦ä¸²ç±»åˆ™å¿…é¡»è¦æŒ‡å®šå®½åº¦
-            self.newLayer.CreateField(self.newField)  # å°†æ–°å­—æ®µæŒ‡é…åˆ°layer
-        return  self.newLayer                           # è¿”å›å€¼ä¸ºæ–°å»ºæ–‡ä»¶çš„å›¾å±‚ Layer å¯¹è±¡
+                self.newField = ogr.FieldDefn(self.field[0], self.fieldType)  # Ìí¼ÓÒ»¸öĞÂ×Ö¶Î
+                self.newField.SetWidth(self.field[1][1])          #Èç¹ûĞÂ×Ö¶ÎÊÇ×Ö·û´®ÀàÔò±ØĞëÒªÖ¸¶¨¿í¶È
+            self.newLayer.CreateField(self.newField)  # ½«ĞÂ×Ö¶ÎÖ¸Åäµ½layer
+        return  self.newLayer                           # ·µ»ØÖµÎªĞÂ½¨ÎÄ¼şµÄÍ¼²ã Layer ¶ÔÏó
 
     def deleteFile(self, filename):
         self.filename = filename
         self.filename = self.path + self.filename
-        if os.path.isfile(self.filename):  # å¦‚æœæ–‡ä»¶å­˜åœ¨çš„è¯åˆ é™¤
-            driver.DeleteDataSource(self.filename)  # åˆ é™¤ä¸€ä¸ªæ–‡ä»¶
+        if os.path.isfile(self.filename):  # Èç¹ûÎÄ¼ş´æÔÚµÄ»°É¾³ı
+            self.driver.DeleteDataSource(self.filename)  # É¾³ıÒ»¸öÎÄ¼ş
             print("File well be delete :" + self.filename)
         else:
             print("File is not exist :" + self.filename + ",Plase Check it!")
 
-    def createPoint(self, layer, x, y, values = []):        #layer ä¸ºè¦å°†Featureæ·»åŠ åˆ°çš„ Layer x ,y ä¸º åæ ‡ values ä¸ºå­—æ®µå€¼åˆ—è¡¨
-        self.layer = layer
+    def createPoint(self, newLayer, x, y, fieldValues = []):        #layer ÎªÒª½«FeatureÌí¼Óµ½µÄ Layer x ,y Îª ×ø±ê values Îª×Ö¶ÎÖµÁĞ±í
+        self.newLayer = newLayer
         self.x = x
         self.y = y
-        self.values = values
-        # æ·»åŠ ä¸€ä¸ªæ–°çš„Feature
-        self.featureDefn = newLayer.GetLayerDefn()  # è·å–Feature çš„ç±»å‹
-        self.newFeature = ogr.Feature(self.featureDefn)  # åˆ›å»ºFeature
-        # è®¾å®šå‡ ä½•å½¢çŠ¶
-        self.point = ogr.Geometry(ogr.wkbPoint)  # åˆ›å»ºä¸€ä¸ªç‚¹
-        self.point.AddPoint(self.x, self.y)  # è®¾ç½® pointçš„åæ ‡
-        self.newFeature.SetGeometry(self.point)  # è®¾ç½®Featurçš„å‡ ä½•å½¢çŠ¶ä¸ºpoint
+        self.fieldValues = fieldValues
+        self.newLayer = self.dataSource.CreateLayer('newLayer')  # ´´½¨Í¼²ãtestLayer2
+        # Ìí¼ÓÒ»¸öĞÂµÄFeature
+        self.featureDefn = self.newLayer.GetLayerDefn()  # »ñÈ¡Feature µÄÀàĞÍ
+        self.newFeature = ogr.Feature(self.featureDefn)  # ´´½¨Feature
+        # Éè¶¨¼¸ºÎĞÎ×´
+        self.point = ogr.Geometry(ogr.wkbPoint)  # ´´½¨Ò»¸öµã
+        self.point.AddPoint(self.x, self.y)  # ÉèÖÃ pointµÄ×ø±ê
+        self.newFeature.SetGeometry(self.point)  # ÉèÖÃFeaturµÄ¼¸ºÎĞÎ×´Îªpoint
+        self.newFeature.GetFieldCount()          #»ñÈ¡±í¸ñµÄÁĞÊı
+        for self.tmpField,self.tmpValue  in zip(self.fieldList, self.fieldValues) :
+            #Éè¶¨FeaturÄ³×Ö¶ÎµÄÊıÖµ,ÕâÀïÉèÖÃ index ×Ö¶ÎµÄÖµÎª 12
+            self.newFeature.SetField(self.tmpField[0], self.tmpValue)
 
-        self.fields = ("poiName", "poiId", "Bound")
-        for self.tmpValue  in (self.values,self.fields) :
-            #è®¾å®šFeaturæŸå­—æ®µçš„æ•°å€¼,è¿™é‡Œè®¾ç½® index å­—æ®µçš„å€¼ä¸º 12
-            self.newFeature.SetField(self.tmpValue[0],self.tmpValue[1])
-        # å°†newFeatureå†™å…¥ newLayer
-        self.layer.CreateFeature(self.newFeature)
-        self.point.Destroy()  # é‡Šæ”¾å¯¹è±¡å†…å­˜
-        return  self.newFeature                  # è¿”å›å€¼ä¸ºFeature å¯¹è±¡
+        # ½«newFeatureĞ´Èë self.layer
+        self.newLayer.CreateFeature(self.newFeature)
+        self.point.Destroy()  # ÊÍ·Å¶ÔÏóÄÚ´æ
+        return  self.newFeature                  # ·µ»ØÖµÎªFeature ¶ÔÏó
 
-    def createLine(self, layer,pointList):           #layer ä¸ºè¦å°†Featureæ·»åŠ åˆ°çš„ Layer , points ä¸ºæŠ˜çº¿çš„èŠ‚ç‚¹x,yåæ ‡çš„åˆ—è¡¨å¦‚ :((1,1),(3,3),(4,2))
-        self.layer = layer
+    def createLine(self, newLayer,pointList, fieldValues = []):           #layer ÎªÒª½«FeatureÌí¼Óµ½µÄ Layer , points ÎªÕÛÏßµÄ½Úµãx,y×ø±êµÄÁĞ±íÈç :((1,1),(3,3),(4,2))
+        self.newLayer = newLayer
         self.pointList = pointList
-        # æ·»åŠ ä¸€ä¸ªæ–°çš„Feature
-        self.featureDefn = newLayer.GetLayerDefn()  # è·å–Feature çš„ç±»å‹
-        self.newFeature = ogr.Feature(self.featureDefn)  # åˆ›å»ºFeature
-        # è®¾å®šå‡ ä½•å½¢çŠ¶
-        self.line = ogr.Geometry(ogr.wkbLineString)  # åˆ›å»ºä¸€æ¡æŠ˜çº¿
+        self.fieldValues = fieldValues
+        self.newLayer = self.dataSource.CreateLayer('newLayer')  # ´´½¨Í¼²ãtestLayer2
+        # Ìí¼ÓÒ»¸öĞÂµÄFeature
+        self.featureDefn = self.newLayer.GetLayerDefn()  # »ñÈ¡Feature µÄÀàĞÍ
+        self.newFeature = ogr.Feature(self.featureDefn)  # ´´½¨Feature
+        # Éè¶¨¼¸ºÎĞÎ×´
+        self.line = ogr.Geometry(ogr.wkbLineString)  # ´´½¨Ò»ÌõÕÛÏß
         for self.pointPos in self.pointList :
-            self.line.AddPoint(self.pointPos[0], self.pointPos[1])  # å¾ªç¯æ·»åŠ æ‰€æœ‰çš„èŠ‚ç‚¹
-        self.newFeature.SetGeometry(self.line)  # è®¾ç½®Featurçš„å‡ ä½•å½¢çŠ¶ä¸ºline
-        #è®¾å®šFeaturæŸå­—æ®µçš„æ•°å€¼,è¿™é‡Œè®¾ç½® index å­—æ®µçš„å€¼ä¸º 12
-        self.newFeature.SetField('index', 12)
-        # å°†newFeatureå†™å…¥ newLayer
-        self.layer.CreateFeature(self.newFeature)
-        self.line.Destroy()  # é‡Šæ”¾å¯¹è±¡å†…å­˜
-        return  self.newFeature                  # è¿”å›å€¼ä¸ºFeature å¯¹è±¡
+            self.line.AddPoint(self.pointPos[0], self.pointPos[1])  # Ñ­»·Ìí¼ÓËùÓĞµÄ½Úµã
+        self.newFeature.SetGeometry(self.line)  # ÉèÖÃFeaturµÄ¼¸ºÎĞÎ×´Îªline
+        #Éè¶¨FeaturÄ³×Ö¶ÎµÄÊıÖµ,ÕâÀïÉèÖÃ index ×Ö¶ÎµÄÖµÎª 12
+        #self.newFeature.SetFieldStringList(self.fieldValues)
+        for self.tmpField,self.tmpValue  in zip(self.fieldList, self.fieldValues) :
+            #Éè¶¨FeaturÄ³×Ö¶ÎµÄÊıÖµ,ÕâÀïÉèÖÃ index ×Ö¶ÎµÄÖµÎª 12
+            self.newFeature.SetField(self.tmpField[0], self.tmpValue)
+        # ½«newFeatureĞ´Èë self.layer
+        self.newLayer.CreateFeature(self.newFeature)
+        self.line.Destroy()  # ÊÍ·Å¶ÔÏóÄÚ´æ
+        return  self.newFeature                  # ·µ»ØÖµÎªFeature ¶ÔÏó
 
-    def createPolygon(self, layer,ringList):           #layer ä¸ºè¦å°†Featureæ·»åŠ åˆ°çš„ Layer ,
-        self.layer = layer                              #rings ä¸ºå°é—­çš„æŠ˜çº¿ring çš„åˆ—è¡¨,å¯ä»¥æœ‰1ä¸ªæˆ–è€…2ä¸ªå…ƒç´ (å†…ç¯å’Œå¤–ç¯)
-        self.ringList = ringList                   #å¦‚:1ä¸ªç¯:((0,0),(0,10),(10,10),(10,0))     2ä¸ªç¯: (((0,0),(0,10),(10,10),(10,0)),((2.5,2.5),(7.5,2.5),(7.5,7.5),(2.5,7.5)))
-        # æ·»åŠ ä¸€ä¸ªæ–°çš„Feature
-        self.featureDefn = newLayer.GetLayerDefn()  # è·å–Feature çš„ç±»å‹
-        self.newFeature = ogr.Feature(self.featureDefn)  # åˆ›å»ºFeature
-        # è®¾å®šå‡ ä½•å½¢çŠ¶
-        self.polygon = ogr.Geometry(ogr.wkbPolygon)  # åˆ›å»ºpolygonåŒºåŸŸ
-        self.ring = []      #å®šä¹‰ringçš„åˆ—è¡¨
+    def createPolygon(self, newLayer,ringList, fieldValues = []):           #layer ÎªÒª½«FeatureÌí¼Óµ½µÄ Layer ,
+        self.newLayer = newLayer                              #rings Îª·â±ÕµÄÕÛÏßring µÄÁĞ±í,¿ÉÒÔÓĞ1¸ö»òÕß2¸öÔªËØ(ÄÚ»·ºÍÍâ»·)
+        self.ringList = ringList                   #Èç:1¸ö»·:((0,0),(0,10),(10,10),(10,0))     2¸ö»·: (((0,0),(0,10),(10,10),(10,0)),((2.5,2.5),(7.5,2.5),(7.5,7.5),(2.5,7.5)))
+        self.fieldValues = fieldValues
+        self.newLayer = self.dataSource.CreateLayer('newLayer')  # ´´½¨Í¼²ãtestLayer2
+        # Ìí¼ÓÒ»¸öĞÂµÄFeature
+        self.featureDefn = self.newLayer.GetLayerDefn()  # »ñÈ¡Feature µÄÀàĞÍ
+        self.newFeature = ogr.Feature(self.featureDefn)  # ´´½¨Feature
+        # Éè¶¨¼¸ºÎĞÎ×´
+        self.polygon = ogr.Geometry(ogr.wkbPolygon)  # ´´½¨polygonÇøÓò
+        self.ring = []      #¶¨ÒåringµÄÁĞ±í
         for i,self.ringPos in enumerate(self.ringList) :
-            self.ring.append(ogr.Geometry(ogr.wkbLinearRing)) # åˆ›å»ºä¸€ä¸ªç¯ ring å¹¶æ·»åŠ åˆ°åˆ—è¡¨ self.ring ä¸­
+            self.ring.append(ogr.Geometry(ogr.wkbLinearRing)) # ´´½¨Ò»¸ö»· ring ²¢Ìí¼Óµ½ÁĞ±í self.ring ÖĞ
             for self.tmpRing in self.ringPos :
-                self.ring[i].AddPoint(self.tmpRing[0], self.tmpRing[1])  #å¾ªç¯æ·»åŠ ç‚¹åˆ°Ringä¸­
-            self.ring[i].CloseRings()  # ç”¨CloseRingsé—­åˆRingï¼Œ
-            self.polygon.AddGeometry(self.ring[i])   # æŠŠç¯ ringæ·»åŠ åˆ°  polygon
-        self.newFeature.SetGeometry(self.polygon)   #è®¾ç½®Featurçš„å‡ ä½•å½¢çŠ¶ä¸ºpolygon (è®¾ç½®newFeature ä¸º åŒºåŸŸ polygon )
-        #è®¾å®šFeaturæŸå­—æ®µçš„æ•°å€¼,è¿™é‡Œè®¾ç½® index å­—æ®µçš„å€¼ä¸º 12
-        self.newFeature.SetField('index', 13)
-        # å°†newFeatureå†™å…¥ newLayer
-        self.layer.CreateFeature(self.newFeature)
-        self.polygon.Destroy()  # é‡Šæ”¾å¯¹è±¡å†…å­˜
-        return  self.newFeature                  # è¿”å›å€¼ä¸ºFeature å¯¹è±¡
+                self.ring[i].AddPoint(self.tmpRing[0], self.tmpRing[1])  #Ñ­»·Ìí¼Óµãµ½RingÖĞ
+            self.ring[i].CloseRings()  # ÓÃCloseRings±ÕºÏRing£¬
+            self.polygon.AddGeometry(self.ring[i])   # °Ñ»· ringÌí¼Óµ½  polygon
+        self.newFeature.SetGeometry(self.polygon)   #ÉèÖÃFeaturµÄ¼¸ºÎĞÎ×´Îªpolygon (ÉèÖÃnewFeature Îª ÇøÓò polygon )
+        #Éè¶¨FeaturÄ³×Ö¶ÎµÄÊıÖµ,ÕâÀïÉèÖÃ index ×Ö¶ÎµÄÖµÎª 12
+        for self.tmpField,self.tmpValue  in zip(self.fieldList, self.fieldValues) :
+            #Éè¶¨FeaturÄ³×Ö¶ÎµÄÊıÖµ,ÕâÀïÉèÖÃ index ×Ö¶ÎµÄÖµÎª 12
+            self.newFeature.SetField(self.tmpField[0], self.tmpValue)
+        # ½«newFeatureĞ´Èë self.layer
+        self.newLayer.CreateFeature(self.newFeature)
+        self.polygon.Destroy()  # ÊÍ·Å¶ÔÏóÄÚ´æ
+        return  self.newFeature                  # ·µ»ØÖµÎªFeature ¶ÔÏó
 
 
-    def setFieldValue(self,layer,valueList):
-        self.layer = layer
+    def setFieldValue(self,newLayer,valueList):
+        self.newLayer = newLayer
         self.valueList = valueList
-        pass
+        for self.tmpField,self.tmpValue  in zip(self.fieldList, self.valueList) :
+            #Éè¶¨FeaturÄ³×Ö¶ÎµÄÊıÖµ,ÕâÀïÉèÖÃ index ×Ö¶ÎµÄÖµÎª 12
+            self.newFeature.SetField(self.tmpField[0], self.tmpValue)
 
     def close(self,layer):
-        layer.ResetReading()  # å¤ä½
-        self.dataSource.Destroy()  # å…³é—­æ•°æ®æºï¼Œç›¸å½“äºæ–‡ä»¶ç³»ç»Ÿæ“ä½œä¸­çš„å…³é—­æ–‡ä»¶
+        layer.ResetReading()  # ¸´Î»
+        self.dataSource.Destroy()  # ¹Ø±ÕÊı¾İÔ´£¬Ïàµ±ÓÚÎÄ¼şÏµÍ³²Ù×÷ÖĞµÄ¹Ø±ÕÎÄ¼ş
 
 
 
 
 if __name__ == '__main__':
-    newMap = CreateMapFeature('E:\\å·¥å…·\\èµ„æ–™\\å®é¸¡\\ç ”ç©¶\\Python\\python3\\gaode_range\\tab\\')
-    fieldList = (("index", 0), ("name",(4,255)), ("lon", 2), ("lat" , 2))
-    newLayer = newMap.newFile('assss.tab', fieldList)
-    newMap.createPoint(newLayer, 10, 10,("","",""))
-    newMap.createPoint(newLayer, 10, 15,("","",""))
-    newMap.createPoint(newLayer, 10, 17,("","",""))
-    newMap.createPoint(newLayer, 10, 18,("","",""))
+    newMap = CreateMapFeature('E:\\¹¤¾ß\\×ÊÁÏ\\±¦¼¦\\ÑĞ¾¿\\Python\\python3\\gaode_range\\tab\\')
+    fieldList = (("index",(4,254)), ("name",(4,254)), ("lon", 2), ("lat" , 2))
+    newLayer = newMap.newFile('assss.shp', fieldList)
+    newMap.createPoint(newLayer, 10, 10,("ÎŞÉ¶µçÊÓ","°¢ÈøË¹°¢ÈøµÂ",23.5,102.55))
+    newMap.createPoint(newLayer, 10, 15,("ÎŞÉ¶µçÊÓ","°¢ÈøË¹°¢ÈøµÂ",23.6,102.65))
+    newMap.createPoint(newLayer, 10, 17,("ÎŞÉ¶µçÊÓ","°¢ÈøË¹°¢ÈøµÂ",23.7,102.75))
+    newMap.createPoint(newLayer, 10, 18,("ÎŞÉ¶µçÊÓ","°¢ÈøË¹°¢ÈøµÂ",23.8,102.85))
 
-    newMap.createLine(newLayer,((0,0),(3,4),(5,6),(7,8)))
-    newMap.createLine(newLayer,((10,10),(8,9),(7,6),(3,5)))
+    newMap.createLine(newLayer,((0,0),(3,4),(5,6),(7,8)),("ÎŞÉ¶µçÊÓ","°¢ÈøË¹°¢ÈøµÂ",23.8,102.85))
+    newMap.createLine(newLayer,((10,10),(8,9),(7,6),(3,5)),("ÎŞÉ¶µçÊÓ","°¢ÈøË¹°¢ÈøµÂ",23.8,102.85))
 
-    newMap.createPolygon(newLayer,(((0, 0), (0, 10), (10, 10), (10, 0)), ((2.5, 2.5), (7.5, 2.5), (7.5, 7.5), (2.5, 7.5))))
+    newMap.createPolygon(newLayer,(((0, 0), (0, 10), (10, 10), (10, 0)), ((2.5, 2.5), (7.5, 2.5), (7.5, 7.5), (2.5, 7.5))),("ÎŞÉ¶µçÊÓ","°¢ÈøË¹°¢ÈøµÂ",23.8,102.85))
 
     newMap.close(newLayer)
