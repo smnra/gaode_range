@@ -45,7 +45,7 @@ def write_to_excel(poilist, cityname, classfield):
     sheet.write(0, 11, 'boundary')
 
     # 创建mapinfo tab图层
-    newMap = createMapinfoTab.CreateMapFeature('.\\tab\\')
+    newMap = createMapinfoFile.CreateMapFeature('.\\tab\\')
     #定义各个列的数据类型级列名
     fieldList = (("id", (4, 16)), ("name", (4, 1024)), ("location", (4, 50)), ("pname", (4, 10)), ("pcode", (4, 10)), ("cityname", (4, 32)), ("citycode", (4, 10)), ("adname", (4, 50)), ("adcode", (4, 10)), ("address", (4, 255)), ("type", (4, 255)), ("boundary", (4, 1024)))
     newLayer = newMap.newFile(cityname + '_' + classfield + 'POI.tab', fieldList)    #创建.tab的文件

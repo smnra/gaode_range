@@ -42,7 +42,7 @@ regionUrl= 'https://gaode.com/service/poiInfo?query_type=IDQ&pagesize=20&pagenum
 
 
 
-newMap = createMapinfoTab.CreateMapFeature('E:\\工具\\资料\\宝鸡\\研究\\Python\\python3\\gaode_range\\tab\\')
+newMap = createMapinfoFile.CreateMapFeature('E:\\工具\\资料\\宝鸡\\研究\\Python\\python3\\gaode_range\\tab\\')
 fieldList = (("poiName", (4, 255)), ("poiId", (4, 255)), ("Bound", (4, 255)))
 newLayer = newMap.newFile('POI.tab', fieldList)
 #newMap.createPoint(newLayer, 10, 10)
