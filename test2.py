@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+
 from urllib.parse import quote
 from urllib import request
 import json
@@ -6,9 +9,37 @@ import createShapeFile
 
 
 
-amap_web_key = '2a3bebd5eedaabc4cfa5c04eb6989365'
+
 poi_search_url = "http://restapi.amap.com/v3/place/text"
 poi_boundary_url = "https://ditu.amap.com/detail/get/detail"
+
+
+
+# 获取key
+class Keys():
+    amap_web_keys = ['3a00e107b4ff451b9306fe3d0405d386', '771b45888c08fcd20c0cf04ed882483a', '9700dfeb2bbaf277dd856f1cd84e7975',  'e12b356d1573935e75f064c571e6e5a2',  '2a3bebd5eedaabc4cfa5c04eb6989365']
+    keyCount = len(amap_web_keys)  # 可用的key的数量
+
+    def __init__(self):
+        self.keyCurrentIndex = self.keyCount - 1  # 初始化当前使用的key的 index
+        self.keyCurrent = self.amap_web_keys[self.keyCurrentIndex]  # 初始化当前key
+
+    def getKey(self):
+        self.keyCurrentIndex = self.keyCurrentIndex - 1  # 把当前正在使用的key的index 减去1
+
+        if self.keyCurrentIndex < 0:  # 如果 当前正在使用的key的index 小于0
+            self.keyCurrentIndex = self.keyCount - 1  # 则重新初始化当前正在使用的key的index(复位keyCurrentIndex)
+
+        self.keyCurrent = self.amap_web_keys[self.keyCurrentIndex]  # 获取key 为 列表中的 当前正在使用的Key的上一个 Key
+        print(self.amap_web_keys[self.keyCurrentIndex],self.keyCurrentIndex)
+        return self.keyCurrent
+
+
+
+amapKey = Keys()                #初始化Keys 类对象
+amap_web_key = amapKey.keyCurrent       # 初始值
+#amapKey.getKey()                #更换Key
+
 
 
 # 根据城市名称和分类关键字获取poi数据
@@ -27,7 +58,7 @@ def getpois(cityname, keywords):
 
 # 数据写入excel
 def write_to_excel(poilist, cityname, classfield):
-    # 一个Workbook对象，这就相当于创建了一个Excel文件  
+    # 一个Workbook对象，这就相当于创建了一个Excel文件
     book = xlwt.Workbook(encoding='utf-8', style_compression=0)
     sheet = book.add_sheet(classfield, cell_overwrite_ok=True)
     # 第一行(列标题)
@@ -60,7 +91,7 @@ def write_to_excel(poilist, cityname, classfield):
 
 
     for i in range(len(poilist)):
-        # 根据poi的id获取边界数据  
+        # 根据poi的id获取边界数据
         bounstr = ''
         bounlist = getBounById(poilist[i]['id'])
         if (len(bounlist) > 1):
@@ -83,11 +114,11 @@ def write_to_excel(poilist, cityname, classfield):
         location_lon = float(poilist[i]['location'].split(',')[0])      #转化经纬度为 float
         location_lat = float(poilist[i]['location'].split(',')[1])      #转化经纬度为 float
         #定义地图各个字段的值的tapul
-        fieldValues = (poilist[i]['id'], poilist[i]['name'], poilist[i]['location'], poilist[i]['pname'], poilist[i]['pcode'], poilist[i]['cityname'], poilist[i]['citycode'], poilist[i]['adname'], poilist[i]['adcode'], poilist[i]['address'], poilist[i]['type'], bounstr)
+        fieldValues = (poilist[i]['id'], poilist[i]['name'], poilist[i]['location'], poilist[i]['pname'], poilist[i]['pcode'], poilist[i]['cityname'], poilist[i]['citycode'], poilist[i]['adname'], poilist[i]['adcode'], poilist[i]['address'], poilist[i]['type'], poilist[i]['location'])
         newMap.createPoint(pointLayer, location_lon, location_lat, fieldValues)
         newMap.createPolygon(polygonLayer,[bounlist] , fieldValues)
         print(poilist[i]['name'])
-
+        #################################mapinfo 的字符串类型最多支持长度为255 大于255的部分将被砍掉  shape 的字符串类型最多支持长度为254 大于254的 将会被舍弃
 
     book.save(r'.//tab//' + cityname + '.xls')
 
@@ -103,13 +134,17 @@ def hand(poilist, result):
 
 
 def getpoi_page(cityname, keywords, page):
-    req_url = poi_search_url + "?key=" + amap_web_key + '&extensions=all&keywords=' + quote(
+    req_url = poi_search_url + "?key=" + amapKey.keyCurrent + '&extensions=all&keywords=' + quote(
         keywords) + '&city=' + quote(cityname) + '&citylimit=true' + '&offset=25' + '&page=' + str(
         page) + '&output=json'
     data = ''
     with request.urlopen(req_url) as f:
         data = f.read()
         data = data.decode('utf-8')
+        json.loads(data)
+        if json.loads(data)["status"] != '1':           #如果返回状态码异常,
+            amapKey.getKey()                              # 更换Key
+            data = getpoi_page(cityname, keywords, page)    #本方法迭代
     return data
 
 
@@ -120,7 +155,10 @@ def getBounById(id):
         data = f.read()
         data = data.decode('utf-8')
         dataList = []
-        datajson = json.loads(data)  # 将字符串转换为json  
+        datajson = json.loads(data)  # 将字符串转换为json
+        if json.loads(data)["status"] != '1':           #如果返回状态码异常,
+            amapKey.getKey()                              # 更换Key
+            dataList = getBounById(id)                        #迭代本方法
         datajson = datajson['data']
         datajson = datajson['spec']
         if len(datajson) == 1:
@@ -138,11 +176,12 @@ def getBounById(id):
                 dataList.append(innerList)
         return dataList
 
+
     # 获取城市分类数据
 
 
 cityname = "西安"
-classfiled = "超市"
+classfiled = "小区"
 pois = getpois(cityname, classfiled)
 
 # 将数据写入excel
