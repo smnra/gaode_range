@@ -2,7 +2,7 @@
 import requests
 import json
 import time
-import  createMapinfoFile
+import  createShapeFile
 
 pageNumber = 1
 
