@@ -84,3 +84,4 @@ for i in range(1,maxPage) :                     #循环 从第一页开始到最
 
 
 newMap.close(newLayer)
+

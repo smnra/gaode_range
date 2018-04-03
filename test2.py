@@ -3,10 +3,10 @@
 
 from urllib.parse import quote
 from urllib import request
-import json
+from urllib import error
+import json, time, random
 import xlwt
 import createShapeFile
-
 
 
 
@@ -21,8 +21,10 @@ class Keys():
     keyCount = len(amap_web_keys)  # 可用的key的数量
 
     def __init__(self):
-        self.keyCurrentIndex = self.keyCount - 1  # 初始化当前使用的key的 index
+        self.keyCurrentIndex = random.randint(0,4)  # 初始化当前使用的key的 index
         self.keyCurrent = self.amap_web_keys[self.keyCurrentIndex]  # 初始化当前key
+        print('Current used key is :',self.keyCurrent, ', Index is :', self.keyCurrentIndex)
+
 
     def getKey(self):
         self.keyCurrentIndex = self.keyCurrentIndex - 1  # 把当前正在使用的key的index 减去1
@@ -31,7 +33,7 @@ class Keys():
             self.keyCurrentIndex = self.keyCount - 1  # 则重新初始化当前正在使用的key的index(复位keyCurrentIndex)
 
         self.keyCurrent = self.amap_web_keys[self.keyCurrentIndex]  # 获取key 为 列表中的 当前正在使用的Key的上一个 Key
-        print(self.amap_web_keys[self.keyCurrentIndex],self.keyCurrentIndex)
+        print('Current used key is :',self.keyCurrent, ', Index is :', self.keyCurrentIndex)
         return self.keyCurrent
 
 
@@ -48,11 +50,15 @@ def getpois(cityname, keywords):
     poilist = []
     while True:  # 使用while循环不断分页获取数据
         result = getpoi_page(cityname, keywords, i)
-        result = json.loads(result)  # 将字符串转换为json
-        if result['count'] == '0':
-            break
-        hand(poilist, result)
-        i = i + 1
+        if result :                     #如果返回结果为正常 则
+            result = json.loads(result)  # 将字符串转换为json
+            if result['count'] == '0':
+                break
+            hand(poilist, result)
+            i = i + 1
+        else :
+            print('返回结果错误', result)                #如果返回值为 -1
+            continue                    #跳过本次循环
     return poilist
 
 
@@ -89,7 +95,7 @@ def write_to_excel(poilist, cityname, classfield):
     polygonLayer = newMap.createLayer(polygonDataSource, fieldList)
 
 
-
+    print('找到POI总数: ', len(poilist))
     for i in range(len(poilist)):
         # 根据poi的id获取边界数据
         bounstr = ''
@@ -115,9 +121,12 @@ def write_to_excel(poilist, cityname, classfield):
         location_lat = float(poilist[i]['location'].split(',')[1])      #转化经纬度为 float
         #定义地图各个字段的值的tapul
         fieldValues = (poilist[i]['id'], poilist[i]['name'], poilist[i]['location'], poilist[i]['pname'], poilist[i]['pcode'], poilist[i]['cityname'], poilist[i]['citycode'], poilist[i]['adname'], poilist[i]['adcode'], poilist[i]['address'], poilist[i]['type'], poilist[i]['location'])
+
+        print(poilist[i])
         newMap.createPoint(pointLayer, location_lon, location_lat, fieldValues)
-        newMap.createPolygon(polygonLayer,[bounlist] , fieldValues)
-        print(poilist[i]['name'])
+        if len(bounlist) > 1 :
+            newMap.createPolygon(polygonLayer,[bounlist] , fieldValues)
+        print(i, poilist[i]['name'])
         #################################mapinfo 的字符串类型最多支持长度为255 大于255的部分将被砍掉  shape 的字符串类型最多支持长度为254 大于254的 将会被舍弃
 
     book.save(r'.//tab//' + cityname + '.xls')
@@ -138,43 +147,78 @@ def getpoi_page(cityname, keywords, page):
         keywords) + '&city=' + quote(cityname) + '&citylimit=true' + '&offset=25' + '&page=' + str(
         page) + '&output=json'
     data = ''
-    with request.urlopen(req_url) as f:
-        data = f.read()
-        data = data.decode('utf-8')
-        json.loads(data)
-        if json.loads(data)["status"] != '1':           #如果返回状态码异常,
-            amapKey.getKey()                              # 更换Key
-            data = getpoi_page(cityname, keywords, page)    #本方法迭代
-    return data
+    try :                                                  #带异常处理
+        with request.urlopen(req_url) as f:
+            data = f.read()
+            data = data.decode('utf-8')
+            json.loads(data)
+            if json.loads(data)["status"] != '1':           #如果返回状态码异常,
+                amapKey.getKey()                              # 更换Key
+                data = getpoi_page(cityname, keywords, page)    #本方法迭代
+        return data
 
+    except error.URLError as e:
+        print('URL Error 请检查网络连接!')
+        if hasattr(e, "code"):
+            print(e.code)
+        if hasattr(e, "reason"):
+            print(e.reason)
+        return  0
 
-# 根据id获取边界数据
+    except error.HTTPError as e:
+        print('HTTP Error 请检查网络连接!')
+        if hasattr(e, "code"):
+            print(e.code)
+        if hasattr(e, "reason"):
+            print(e.reason)
+        return 0
+
+        # 根据id获取边界数据
 def getBounById(id):
     req_url = poi_boundary_url + "?id=" + id
-    with request.urlopen(req_url) as f:
-        data = f.read()
-        data = data.decode('utf-8')
-        dataList = []
-        datajson = json.loads(data)  # 将字符串转换为json
-        if json.loads(data)["status"] != '1':           #如果返回状态码异常,
-            amapKey.getKey()                              # 更换Key
-            dataList = getBounById(id)                        #迭代本方法
-        datajson = datajson['data']
-        datajson = datajson['spec']
-        if len(datajson) == 1:
-            return dataList
-        if datajson.get('mining_shape') != None:
-            datajson = datajson['mining_shape']
-            shape = datajson['shape']
-            dataArr = shape.split(';')
+    try:
+        with request.urlopen(req_url) as f:
+            data = f.read()
+            data = data.decode('utf-8')
+            dataList = []
+            datajson = json.loads(data)  # 将字符串转换为json
+            if json.loads(data)["status"] != '1':           #如果返回状态码异常,
+                if json.loads(data)["status"] == '6' :
+                    time.sleep(120)                             #如果返回值状态码为 6   即 'too fast' 则 暂停60秒
+                amapKey.getKey()                              # 更换Key
+                dataList = getBounById(id)                    #迭代本方法
+            datajson = datajson['data']
+            datajson = datajson['spec']
+            if len(datajson) == 1:
+                return dataList
+            if datajson.get('mining_shape') != None:
+                datajson = datajson['mining_shape']
+                shape = datajson['shape']
+                dataArr = shape.split(';')
 
-            for i in dataArr:
-                innerList = []
-                f1 = float(i.split(',')[0])
-                innerList.append(float(i.split(',')[0]))
-                innerList.append(float(i.split(',')[1]))
-                dataList.append(innerList)
-        return dataList
+                for i in dataArr:
+                    innerList = []
+                    f1 = float(i.split(',')[0])
+                    innerList.append(float(i.split(',')[0]))
+                    innerList.append(float(i.split(',')[1]))
+                    dataList.append(innerList)
+            return dataList
+
+    except error.URLError as e:
+        print('URL Error 请检查网络连接!')
+        if hasattr(e, "code"):
+            print(e.code)
+        if hasattr(e, "reason"):
+            print(e.reason)
+        return  0
+
+    except error.HTTPError as e:
+        print('HTTP Error 请检查网络连接!')
+        if hasattr(e, "code"):
+            print(e.code)
+        if hasattr(e, "reason"):
+            print(e.reason)
+        return 0
 
 
     # 获取城市分类数据
