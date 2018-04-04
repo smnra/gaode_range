@@ -5,7 +5,7 @@ import requests
 import time
 from createShapeFile import CreateMapFeature
 
-def cutRect(leftTop,rightBottom):
+def cutRect(rect):
     #参数为 左上角 和 右下角坐标的 列表    例如 leftTop:[0,10]   rightBottom:[10,0]
     #把矩形框分割为四等份
     rects = []            #列表用于保存分割后的四个矩形
@@ -13,6 +13,9 @@ def cutRect(leftTop,rightBottom):
     rightTopRect = []       #用于右上角矩形的坐标
     leftBottomRect = []      #用于左下角矩形的坐标
     rightBottomRect = []       #用于右下角矩形的坐标
+
+    leftTop = rect[0]           #左上角坐标
+    rightBottom = rect[1]       #右下角坐标
 
     width = rightBottom[0] - leftTop[0]             #Rect的宽度
     height = leftTop[1] - rightBottom[1]            #Rect的高度
@@ -24,8 +27,10 @@ def cutRect(leftTop,rightBottom):
     rects = [leftTopRect, rightTopRect, leftBottomRect, rightBottomRect]
     return rects
 
-def rectToPoint(leftTop,rightBottom):
+def rectToPoint(rect):
     # 参数为 左上角 和 右下角坐标的 列表    例如 leftTop:[0,10]   rightBottom:[10,0]
+    leftTop = rect[0]           #左上角坐标
+    rightBottom = rect[1]       #右下角坐标
     points = []
     leftTopPoint = [leftTop[0],leftTop[1]]   #左上角Point的坐标
     rightTopPoint = [rightBottom[0],leftTop[1]]  # 右上角Point的坐标
@@ -41,15 +46,13 @@ if __name__ == '__main__' :
     dataSource = newMap.newFile('polygon.shp')
     newLayer = newMap.createLayer(dataSource, fieldList)
 
+    rect = [[0, 10], [10,0]]
+    newMap.createPolygon(newLayer,[rectToPoint(rect)], ("1", "源矩形", 23.8, 102.85))
 
-    leftTop = [0, 10]
-    rightBottom = [10,0]
-    newMap.createPolygon(newLayer,[rectToPoint(leftTop,rightBottom)], ("1", "源矩形", 23.8, 102.85))
-
-    rects = cutRect(leftTop, rightBottom)
-    for i,rect in enumerate(rects,1) :
-        print(rect)
-        newMap.createPolygon(newLayer,[rectToPoint(rect[0],rect[1])], (i,"分割后的Rect_" + str(i),23.8,102.85))
+    rects = cutRect(rect)
+    for i,subRect in enumerate(rects,1) :
+        print(subRect)
+        newMap.createPolygon(newLayer,[rectToPoint(subRect)], (i,"分割后的Rect_" + str(i),23.8,102.85))
 
 
 

@@ -51,31 +51,30 @@ class getRectPoi():
 
     def setParams(self,keyDict):
         for key,value in keyDict.items() :              #遍历 keyDict
-            if key in list(self.urlParams.keys()) :   #如果 keyDict 中的key 在 self.urlParams中存在,
+            if self.urlParams.has_key(key) :   #如果 keyDict 中的key 在 self.urlParams中存在,
                 self.urlParams[key] = value      #把 keyDict 中的value 更新到 self.urlParams 中
 
-
-    def getRectPoiNumber(self,rect):            #接收的参数为 矩形框的 坐标 [[108.889573,34.269261], [108.924163,34.250959]]
+    def getRectPoi(self,rect):            #接收的参数为 矩形框的 坐标 [[108.889573,34.269261], [108.924163,34.250959]]
         rectParam = {'polygon': self.rectToPolygonStr(rect)}
         self.setParams(rectParam)                               #使用 self.setParams() 方法 更新 'polygon' 字段的值
         try:
             result = requests.get(self.url, params = self.urlParams, timeout = 10, headers = getRectPoi.headers)
             if result.json()['status'] == '1' :             #在高德地图的api中 'status' 返回  '1' 为正常
                 resultJson = result.json()                    #得到json格式的数据
-                poiCount = int(resultJson['count'])          #从 'count' 字段 得到 poi的 个数
-                return poiCount
+                #poiCount = int(resultJson['count'])          #从 'count' 字段 得到 poi的 个数
+                resultJson.update({'rect' : rect})           # 把 键值对 {'rect' : rect} 更新到 resultJson
+                return resultJson
             elif result.json()['status'] == '6' :           #在高德地图的api中 'status' 返回  '6' 为 'too fast'
                 print('too fast, 120s retry!')
                 time.sleep(120)                                #暂停120秒后 迭代 本函数
-                return self.getRectPoiNumber(rect)             #暂停120秒后 迭代 本函数
+                return self.getRectPoi(rect)             #暂停120秒后 迭代 本函数
             elif result.json()['status'] == '0' :            #在高德地图的api中 'status' 返回  '0' 为 'invalid key' key出问题了
                 print('invalid key, 3s retry!')             #暂停3秒
                 time.sleep(3)
                 self.setParams({'key': amapKey.getKey()})      #更换key
-                return self.getRectPoiNumber(rect)             # 迭代 本函数
+                return self.getRectPoi(rect)             # 迭代 本函数
             else :
                 return 0
-
         except requests.exceptions.ConnectionError:
             print('ConnectionError -- please wait 3 seconds')
             return -1
@@ -86,6 +85,11 @@ class getRectPoi():
             print('Unfortunitely -- An Unknow Error Happened, Please wait 3 seconds')
             return -3
 
+    def getRectPoi(self,resultJson):
+        if int(resultJson['count']) > 800 :
+            cutRect(leftTop, rightBottom)
+
+
 
 if __name__ == '__main__' :
     amapKey = Keys()  # 初始化Keys 类对象
@@ -93,8 +97,7 @@ if __name__ == '__main__' :
     # amapKey.getKey()                #更换Key
     rect = [[108.889573, 34.269261], [108.924163, 34.250959]]
     rectPoi = getRectPoi()
-    poiCount =  rectPoi.getRectPoiNumber(rect)
-
+    poiCount =  rectPoi.getRectPoi(rect)
     print(poiCount)
 
 
